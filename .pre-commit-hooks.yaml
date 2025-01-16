@@ -1,0 +1,8 @@
+- id: dtxIndent
+  name: dtxIndent.sh
+  description: LaTeX Indent for dtx files
+  minimum_pre_commit_version: 4.0.0
+  language: script
+  entry: dtxLaTeXIndent/dtxLaTeXIndent.sh
+  types: [file]
+  files: \.dtx$

@@ -1,0 +1,110 @@
+# level two of the workflow to indent dtx files
+# parts of this file are taken from or inspired by the discussion at https://github.com/cmhughes/latexindent.pl/issues/513
+
+defaultIndent: "  "
+
+fileExtensionPreference:
+  .dtx: 1
+
+# backupExtension: .doc_bak
+# maxNumberOfBackUps: 3
+# cycleThroughBackUps: 1
+onlyOneBackup: 1
+
+removeTrailingWhitespace:
+  beforeProcessing: 0
+  afterProcessing: 1
+
+indentAfterItems:
+  description: 1
+
+specialBeginEnd:
+  # maybe?! specialBeforeCommand: 1
+  # ^^A .... as verbatim
+  dtxComments:
+    begin: \^\^A
+    end: \n
+    lookForThis: verbatim
+
+  # %<.*?> as verbatim
+  # TODO maybe <test> should also? not sure if it makes a difference
+  docstripMultilineGuards:
+    begin: '%\<[*/]'
+    end: '\>'
+    lookForThis: verbatim
+
+  iffalse:
+    begin: \\iffalse(?![a-zA-Z\:\_])
+    end: \\fi(?![a-zA-Z\_\:])
+    lookForThis: verbatim
+
+  # already indented
+  macrocode:
+    begin: ^%\s{4}\\begin\{macrocode\}
+    end: ^%\s{4}\\end\{macrocode\}
+    lookForThis: verbatim
+
+  # the custom TBR marker shouldn't be touched
+  toBeRemoved:
+    begin: '%TBR'
+    end: \n
+    lookForThis: verbatim
+
+noAdditionalIndent:
+  iffalse: 1
+  Syntax: 1
+  example: 1
+
+replacements:
+  # remove leading %
+  # TODO check different to       s/^%(?![<\n]) ?(.*?)$/$1%TBR/mg  s/^%(?!<) ?(.*?)$/$1%TBR/mg
+  - substitution: |-
+      s/^%(?![<\n]) ?(.*?)$/$1%TBR/mg
+    when: before
+
+  # put leading % back
+  - substitution: |-
+      s/^(.*?)% *?TBR$/% $1/mg
+    when: after
+
+  # the \begin{macrocode} and \end{macrocode} need to be indented by exactly four spaces
+  - substitution: |-
+      s/^% *\\(begin|end)\{macrocode\}/%    \\$1\{macrocode\}/mg
+    when: after
+
+  -
+    substitution: |-
+      s/^%\s\\iffalse\s+\n((?:<[^\n]+\n)+)%\s\\fi/XXXXX/smg
+    when: after
+
+  -
+    substitution: |-
+      s@^                         # line begins with
+        (%                        # %
+          (?!                     # not followed by
+            (?:                   #
+              (?:<[*a-zA-Z])      #   <[*a-zA-Z]
+              |                   # OR
+              (?:<\/[a-zA-Z]+\|)  #   </[a-zA-Z]|
+            )                     #
+          )[^\n]*?\R              # anything except a new line
+        )                         #
+        (                         #
+          (?:[^%].*?$)+?\R        # %
+        )                         #
+        (%)@
+      my $begin =  $1;
+      my $middle = $2;
+      my $end    = $3;
+      # remove leading space from first line of $middle
+      $middle =~ s|^(\h*)||s;
+      my $leadingSpace = ($1?$1:q());
+      $middle =~ s|^$leadingSpace||mg;
+      $begin.$middle.$end;@sgmxe
+    when: after
+
+
+  -
+    substitution: |-
+      s/^%\h+(?=(?:\^\^A))/%/mg
+    when: after
